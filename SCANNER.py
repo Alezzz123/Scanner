@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-#el @dataclass es una herramienta de python que permite crear el objeto, le pasas los atributos y se encarga de crear el constructor, representarlos de manera legible cuando se llamen y permite la comparacion en caso de que tengan atributos de valores distintos
+# @dataclass es una herramienta de Python que, a partir de los atributos de la clase,
+# genera automáticamente el constructor (__init__), una forma legible de mostrar el
+# objeto (__repr__) y la comparación con == (__eq__): dos tokens son iguales si TODOS
+# sus atributos tienen los mismos valores, aunque sean objetos distintos.
 @dataclass
 class Token:
     codigo: int
@@ -107,11 +110,14 @@ def decodificar(celda):
 #nesecitamos que el scanner recuerde y nada de lo que hicimos anteriormente sirve para eso, son solo datos que nuestro scanner va a usar, pero necesitamos que recuerde donde se quedo, es por eso que una clase es lo que necesitamos
 #una clase es un plano, que dice que es lo que debe de llevar el objeto y que es lo que debe saber hacer
 class Scanner:
-    #el __init__ es el constructor, es como si tuvieras una mochila, el constructor dice "mi mochila va a guardar estas cosas" self.texto guarda el texto que le pasemos, es decir, el que el scanner va a utilziar, suposicion de inicio por default es 0 y ademas crea una lista donde guardara los errores que se presenten
+    # El constructor prepara la mochila del scanner: el texto a analizar, la posición
+    # del siguiente carácter (empieza en 0), la lista de errores encontrados y el último
+    # token entregado (al principio ninguno), que se usa para decidir el SALTO implícito.    
     def __init__(self, texto):
         self.texto = texto
         self.pos = 0
         self.errores = []
+        self.ultimo = None
     #este es la funcion que le permite al scanner leer caracter por caracter, primero toma el texto y la posicion guardada en pos y accede a ese caracter y lo devuelve, si pos es mas grande que la longitud del texto, regresa None, es decir EOF
     def leer(self):
         c = self.texto[self.pos] if self.pos < len(self.texto) else None
@@ -120,10 +126,11 @@ class Scanner:
     #en caso de que el scanner requiera retroceder como cuando recibe un "100*" se usa esta funcion
     def retroceder(self):
         self.pos -= 1
-    #es lo que permite devolver en donde esta ubicada nuestro scanner
+    # Recibe un índice del texto y calcula en qué línea y columna está, contando desde 1
+    # como los editores. No mueve el separador: solo consulta el texto.
     def posicion(self, indice):
         linea = self.texto.count('\n', 0, indice) + 1 #cuenta cuantos saltos de linea hay desde que empezamos, si hay 0, entonces estas en la linea 1
-        inicio_linea = self.texto.rfind('\n', 0, indice) + 1 
+        inicio_linea = self.texto.rfind('\n', 0, indice) + 1  # índice donde empieza la línea: justo después del último \n anterior (si no hay ninguno, rfind da -1 y queda 0)        
         return linea, indice - inicio_linea + 1
     # Es el método que usará el parser: cada llamada lee los caracteres
     # necesarios para formar UN token y lo entrega. La posición queda
@@ -200,3 +207,13 @@ class Scanner:
 
             self.ultimo = sig  # se anota en la mochila qué token salió, para la próxima llamada
             return Token(sig, lexema, linea, col)
+if __name__ == "__main__":
+    codigo = 'var x : num\nshow x'
+    s = Scanner(codigo)
+    while True:
+        t = s.siguiente_token()
+        print(t)
+        if t.codigo == 119:
+            break
+    for e in s.errores:
+        print(e)
